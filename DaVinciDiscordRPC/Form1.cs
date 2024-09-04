@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Forms;
 using DiscordRPC;
 using DiscordRPC.Logging;
+using Microsoft.Win32;
 
 namespace DaVinciDiscordRPC
 {
@@ -18,15 +19,15 @@ namespace DaVinciDiscordRPC
         private TimeSpan presenceDuration = TimeSpan.Zero;
         private Thread rpcThread = null;
         private bool isRunning = false;
+        private const string StartupKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+        private const string AppName = "DaVinciDiscordRPC";
 
         public Form1()
         {
             InitializeComponent();
             LoadDiscordAppId();
-            // Ensure the form shows in the taskbar
+            chkRunOnStartup.Checked = IsApplicationInStartup();
             this.ShowInTaskbar = true;
-
-            // Set the form border style if needed
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.Icon = new Icon(@"D:\coding\C#\DaVinciDiscordRPC\DaVinciDiscordRPC\davinci_resolve_logo.ico");
         }
@@ -218,6 +219,47 @@ namespace DaVinciDiscordRPC
                 return;
             }
             txtStatus.AppendText(message + Environment.NewLine);
+        }
+
+        private void chkRunOnStartup_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkRunOnStartup.Checked)
+            {
+                AddApplicationToStartup();
+            }
+            else
+            {
+                RemoveApplicationFromStartup();
+            }
+        }
+
+        private bool IsApplicationInStartup()
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(StartupKey, false))
+            {
+                if (key != null)
+                {
+                    return key.GetValue(AppName) != null;
+                }
+            }
+            return false;
+        }
+
+        private void AddApplicationToStartup()
+        {
+            string exePath = Application.ExecutablePath;
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(StartupKey, true))
+            {
+                key.SetValue(AppName, $"\"{exePath}\"");
+            }
+        }
+
+        private void RemoveApplicationFromStartup()
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(StartupKey, true))
+            {
+                key.DeleteValue(AppName, false);
+            }
         }
     }
 
